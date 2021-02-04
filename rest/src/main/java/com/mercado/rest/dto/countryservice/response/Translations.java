@@ -9,14 +9,14 @@ import lombok.NoArgsConstructor;
 @Data
 public class Translations {
 
-    public String de;
-    public String es;
-    public String fr;
-    public String ja;
-    public String it;
-    public String br;
-    public String pt;
-    public String nl;
-    public String hr;
-    public String fa;
+    private String de;
+    private String es;
+    private String fr;
+    private String ja;
+    private String it;
+    private String br;
+    private String pt;
+    private String nl;
+    private String hr;
+    private String fa;
 }

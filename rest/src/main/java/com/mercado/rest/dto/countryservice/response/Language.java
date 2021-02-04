@@ -9,8 +9,8 @@ import lombok.NoArgsConstructor;
 @Data
 public class Language {
 
-    public String iso639_1;
-    public String iso639_2;
-    public String name;
-    public String nativeName;
+    private String iso639_1;
+    private String iso639_2;
+    private String name;
+    private String nativeName;
 }

@@ -11,9 +11,9 @@ import java.util.List;
 @Data
 public class RegionalBloc {
 
-    public String acronym;
-    public String name;
-    public List<String> otherAcronyms;
-    public List<String> otherNames;
+    private String acronym;
+    private String name;
+    private List<String> otherAcronyms;
+    private List<String> otherNames;
 
 }

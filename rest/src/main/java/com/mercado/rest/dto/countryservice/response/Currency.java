@@ -6,9 +6,9 @@ import lombok.*;
 @Data
 public class Currency {
 
-    public String code;
-    public String name;
-    public String symbol;
+    private String code;
+    private String name;
+    private String symbol;
 
 
 }

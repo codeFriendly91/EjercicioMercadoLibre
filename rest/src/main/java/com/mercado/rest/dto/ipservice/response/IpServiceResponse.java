@@ -10,9 +10,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class IpServiceResponse {
 
-    public String countryCode;
-    public String countryCode3;
-    public String countryName;
-    public String countryEmoji;
+    private String countryCode;
+    private String countryCode3;
+    private String countryName;
+    private String countryEmoji;
 
 }

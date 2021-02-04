@@ -3,6 +3,7 @@ package com.mercado.rest.dto.trace.response;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.Singular;
 
 import java.util.List;
 
@@ -11,14 +12,14 @@ import java.util.List;
 @Data
 public class TraceResponse {
 
-    public String ip;
-    public String date;
-    public String country;
-    public String iso_code;
-    public List<String> languages;
-    public String currency;
-    public List<String> times;
-    public String estimated_distance;
+    private String ip;
+    private String date;
+    private String country;
+    private String iso_code;
+    private List<String> languages;
+    private String currency;
+    private List<String> times;
+    private String estimated_distance;
 
 
 

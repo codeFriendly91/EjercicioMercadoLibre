@@ -11,29 +11,29 @@ import java.util.List;
 @Data
 public class Country {
 
-    public String name;
-    public List<String> topLevelDomain;
-    public String alpha2Code;
-    public String alpha3Code;
-    public List<String> callingCodes;
-    public String capital;
-    public List<String> altSpellings;
-    public String region;
-    public String subregion;
-    public int population;
-    public List<Integer> latlng;
-    public String demonym;
-    public int area;
-    public double gini;
-    public List<String> timezones;
-    public List<String> borders;
-    public String nativeName;
-    public String numericCode;
-    public List<Currency> currencies;
-    public List<Language> languages;
-    public Translations translations;
-    public String flag;
-    public List<RegionalBloc> regionalBlocs;
-    public String cioc;
+    private String name;
+    private List<String> topLevelDomain;
+    private String alpha2Code;
+    private String alpha3Code;
+    private List<String> callingCodes;
+    private String capital;
+    private List<String> altSpellings;
+    private String region;
+    private String subregion;
+    private int population;
+    private List<Integer> latlng;
+    private String demonym;
+    private int area;
+    private double gini;
+    private List<String> timezones;
+    private List<String> borders;
+    private String nativeName;
+    private String numericCode;
+    private List<Currency> currencies;
+    private List<Language> languages;
+    private Translations translations;
+    private String flag;
+    private List<RegionalBloc> regionalBlocs;
+    private String cioc;
 
 }
