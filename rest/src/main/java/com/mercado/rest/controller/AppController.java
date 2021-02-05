@@ -1,7 +1,11 @@
 package com.mercado.rest.controller;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mercado.rest.document.Rate;
 import com.mercado.rest.dto.countryservice.response.Country;
 import com.mercado.rest.dto.ipservice.response.IpServiceResponse;
 import com.mercado.rest.dto.trace.response.TraceResponse;
+import com.mercado.rest.repository.RateRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,9 +13,11 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalField;
 import java.util.*;
 
 
@@ -20,6 +26,12 @@ import java.util.*;
 public class AppController {
 
     Logger logger = LoggerFactory.getLogger(AppController.class);
+    private RateRepository rateRepository;
+
+    public AppController(RateRepository rateRepository){
+
+        this.rateRepository = rateRepository;
+    }
 
 
     @Value( "${rest.country.endpoint}" )
@@ -28,20 +40,27 @@ public class AppController {
     @Value("${ip.country.endpoint}")
     private String ipEndPoint;
 
+    @Value("${rest.currency.endpoint}")
+    private String curencyEndpoint;
+
+    @Value("${rest.currency.api.key}")
+    private String curencyApiKey;
+
+
 
     @RequestMapping(value = "trace", method = RequestMethod.POST,  produces = { "application/json" })
-    public TraceResponse trace(@RequestBody Map<String, String> body){
+    public TraceResponse trace(@RequestBody Map<String, String> body) throws JsonProcessingException {
 
 
-        Country country = new Country();
-        IpServiceResponse ipServiceResponse = new IpServiceResponse();
-        TraceResponse traceResponse = new TraceResponse();
+        Country country;
+        IpServiceResponse ipServiceResponse;
+        TraceResponse traceResponse;
+
         try {
 
             RestTemplate restTemplate = new RestTemplate();
             StringBuilder sb = new StringBuilder();
             sb.append(ipEndPoint);
-            sb.append("ip?");
             sb.append(body.get("ip"));
 
             //execute ip API
@@ -51,6 +70,17 @@ public class AppController {
             country = restTemplate.getForObject(countryEndpoint+ipServiceResponse.getCountryCode3(), Country.class);
 
             traceResponse = mapResponse(body.get("ip"), country);
+
+            Map<String, Object> currencyVariables = new HashMap<>();
+            currencyVariables.put("apikey",curencyApiKey);
+
+            //execute currency API
+            String currencyResponse = restTemplate.getForObject(curencyEndpoint, String.class,currencyVariables);
+            logger.info(currencyResponse);
+            Map<String,Object> result =  new ObjectMapper().readValue(currencyResponse, HashMap.class);
+            LinkedHashMap<Object,Object> rates =  (LinkedHashMap<Object, Object>) result.get("rates");
+
+            rates.forEach((k,v) -> rateRepository.save(new Rate(LocalDateTime.now(),k.toString(),v.toString())));
 
             //String exchange = restTemplate.getForObject("http://data.fixer.io/api/latest?access_key=79df1eb4087e3af9ce531e4ac1cb36dd", String.class);
 
@@ -70,6 +100,25 @@ public class AppController {
 
         return "hello";
     }
+
+
+    @RequestMapping(value = "getall", method = RequestMethod.GET, produces = { "application/json" })
+    public List<Rate> getAll(){
+
+        return rateRepository.findAll();
+    }
+
+
+    @RequestMapping(value = "add", method = RequestMethod.GET, produces = { "application/json" })
+    public void add(){
+
+        LocalDateTime localDateTime = LocalDateTime.now();
+        //rateRepository.save(new Rate(localDateTime,"",100.00));
+        //rateRepository.save(new Rate(localDateTime,"",233.33));
+    }
+
+
+
 
 
     public TraceResponse mapResponse(String ip, Country country){
