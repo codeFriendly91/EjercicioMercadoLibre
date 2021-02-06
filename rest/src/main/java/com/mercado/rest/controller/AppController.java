@@ -6,6 +6,7 @@ import com.mercado.rest.dto.countryservice.response.Country;
 import com.mercado.rest.dto.ipservice.response.IpServiceResponse;
 import com.mercado.rest.dto.trace.response.TraceResponse;
 import com.mercado.rest.repository.RateRepository;
+import com.mercado.rest.repository.TraceRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,11 +14,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalField;
 import java.util.*;
 
 
@@ -26,10 +25,13 @@ import java.util.*;
 public class AppController {
 
     Logger logger = LoggerFactory.getLogger(AppController.class);
+
     private RateRepository rateRepository;
+    private TraceRepository traceRepository;
 
-    public AppController(RateRepository rateRepository){
 
+    public AppController(RateRepository rateRepository, TraceRepository traceRepository ){
+        this.traceRepository = traceRepository;
         this.rateRepository = rateRepository;
     }
 
@@ -54,7 +56,8 @@ public class AppController {
 
         Country country;
         IpServiceResponse ipServiceResponse;
-        TraceResponse traceResponse;
+        TraceResponse traceResponse = null;
+        Rate rate = null;
 
         try {
 
@@ -62,28 +65,28 @@ public class AppController {
             StringBuilder sb = new StringBuilder();
             sb.append(ipEndPoint);
             sb.append(body.get("ip"));
-
             //execute ip API
             ipServiceResponse = restTemplate.getForObject(sb.toString(), IpServiceResponse.class);
+            loadCurrencyOnDatabase(restTemplate);
+            //Busco en la base si ya no tengo una respuesta anterior con la data
+            //Si no devuelve nada ejecuto el servicio
+            if(traceRepository.findByIsoCode(ipServiceResponse.getCountryCode()) == null) {
+                logger.info("ejecutando el servicio de pais");
+                //execute country API
+                country = restTemplate.getForObject(countryEndpoint + ipServiceResponse.getCountryCode3(), Country.class);
+                rate = rateRepository.findByCurrency(country.getCurrencies().get(0).getCode());
+                //Si no estan los datos del cambio en la base de datos los busco del servicio
+                traceResponse = mapResponse(body.get("ip"), country, rate);
+                //execute currency API
+                traceRepository.save(traceResponse);
 
-            //execute country API
-            country = restTemplate.getForObject(countryEndpoint+ipServiceResponse.getCountryCode3(), Country.class);
+            }else{
 
-            traceResponse = mapResponse(body.get("ip"), country);
+                logger.info("lo esta levantando de la base, pero hay que agregarle el cambio y la hora actual");
+                traceResponse = traceRepository.findByIsoCode(ipServiceResponse.getCountryCode());
 
-            Map<String, Object> currencyVariables = new HashMap<>();
-            currencyVariables.put("apikey",curencyApiKey);
 
-            //execute currency API
-            String currencyResponse = restTemplate.getForObject(curencyEndpoint, String.class,currencyVariables);
-            logger.info(currencyResponse);
-            Map<String,Object> result =  new ObjectMapper().readValue(currencyResponse, HashMap.class);
-            LinkedHashMap<Object,Object> rates =  (LinkedHashMap<Object, Object>) result.get("rates");
-
-            rates.forEach((k,v) -> rateRepository.save(new Rate(LocalDateTime.now(),k.toString(),v.toString())));
-
-            //String exchange = restTemplate.getForObject("http://data.fixer.io/api/latest?access_key=79df1eb4087e3af9ce531e4ac1cb36dd", String.class);
-
+            }
 
         }catch (Exception e) {
 
@@ -103,16 +106,26 @@ public class AppController {
 
 
     @RequestMapping(value = "getall", method = RequestMethod.GET, produces = { "application/json" })
-    public List<Rate> getAll(){
+    public TraceResponse getAll(){
+        if(traceRepository.findByIsoCode("ESP") == null) {
 
-        return rateRepository.findAll();
+            logger.info("NO VINIERON DATOS DE LA QUERY");
+        }
+        return traceRepository.findByIsoCode("US");
     }
 
 
     @RequestMapping(value = "add", method = RequestMethod.GET, produces = { "application/json" })
     public void add(){
 
-        LocalDateTime localDateTime = LocalDateTime.now();
+        LocalDateTime date = LocalDateTime.now();
+//        rateRepository.save(new Rate(date,"EUR",190L));
+//        rateRepository.save(new Rate(date,"US",120L));
+//        rateRepository.save(new Rate(date,"US",120L));
+//        rateRepository.save(new Rate(date,"US",120L));
+//        rateRepository.save(new Rate(date,"US",120L));
+//        rateRepository.save(new Rate(date,"US",120L));
+//        rateRepository.save(new Rate(date,"US",120L));
         //rateRepository.save(new Rate(localDateTime,"",100.00));
         //rateRepository.save(new Rate(localDateTime,"",233.33));
     }
@@ -121,7 +134,7 @@ public class AppController {
 
 
 
-    public TraceResponse mapResponse(String ip, Country country){
+    public TraceResponse mapResponse(String ip, Country country, Rate rate){
 
         TraceResponse traceResponse = new TraceResponse();
 
@@ -131,12 +144,13 @@ public class AppController {
 
         traceResponse.setDate(dtf.format(now));
         traceResponse.setCountry(country.getName());
-        traceResponse.setIso_code(country.getAlpha2Code());
+        traceResponse.setIsoCode(country.getAlpha2Code());
         traceResponse.setLanguages(new ArrayList<>());
-        country.getLanguages().forEach((language) -> traceResponse.getLanguages().add(language.getNativeName() + "(" + language.getIso639_2() + ")"));
+        country.getLanguages().stream().forEach((language) -> traceResponse.getLanguages().add(language.getName() + "(" + language.getIso639_2() + ")"));
         traceResponse.setTimes(new ArrayList<>());
-        country.getTimezones().forEach((timeZone) -> traceResponse.getTimes().add(getCountryTime(timeZone)));
+        country.getTimezones().stream().forEach((timeZone) -> traceResponse.getTimes().add(getCountryTime(timeZone)));
         traceResponse.setEstimated_distance(getDistanceToBsAs(country.getLatlng().get(0), country.getLatlng().get(1)));
+        traceResponse.setCurrency("1 EUR = " + rate.getValue() +" " + country.getCurrencies().get(0).getCode());
 
 
         return traceResponse;
@@ -195,5 +209,29 @@ public class AppController {
 
 
     }
+
+
+
+    /**
+     * Carga los datos del cambio en base de datos si el document esta vacio
+     * @param restTemplate
+     * @throws JsonProcessingException
+     */
+    public void loadCurrencyOnDatabase(RestTemplate restTemplate) throws JsonProcessingException {
+
+        if(rateRepository.findAll().isEmpty() || rateRepository.findAll() == null) {
+            logger.info("esta cargando desde el servicio los datos actuales de cambio en la base");
+            Map<String, Object> currencyVariables = new HashMap<>();
+            currencyVariables.put("apikey", curencyApiKey);
+            String currencyResponse = restTemplate.getForObject(curencyEndpoint, String.class, currencyVariables);
+            logger.info(currencyResponse);
+            Map<String, Object> result = new ObjectMapper().readValue(currencyResponse, HashMap.class);
+            LinkedHashMap<Object, Object> rates = (LinkedHashMap<Object, Object>) result.get("rates");
+            LocalDateTime localDateTime = LocalDateTime.now();
+            rates.entrySet().stream().forEach(e -> rateRepository.save(new Rate(localDateTime, e.getKey().toString(), Double.parseDouble(e.getValue().toString()))));
+        }
+
+    }
+
 
 }

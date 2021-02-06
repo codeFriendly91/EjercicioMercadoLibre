@@ -22,6 +22,8 @@ public class MongoDBConfig {
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
         return string ->{
+            LocalDateTime date = LocalDateTime.now();
+
 
         };
 

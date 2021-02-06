@@ -7,10 +7,8 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
-
 import java.time.LocalDateTime;
-import java.util.Date;
+
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -18,10 +16,11 @@ import java.util.Date;
 @Document
 public class Rate {
 
-    //@Indexed(expireAfterSeconds = 60)
-    private LocalDateTime deleteAt;
+
+    @Indexed(expireAfter = "12h")
+    private LocalDateTime createdAt;
     private String currency;
-    private String value;
+    private double value;
 
 
 }
