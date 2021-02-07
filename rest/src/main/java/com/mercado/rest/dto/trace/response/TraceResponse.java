@@ -28,6 +28,7 @@ public class TraceResponse {
     private List<String> times;
     private long estimated_distance;
 
+
     public TraceResponse(String ip, String date, String country, String isoCode, List<String> languages, String currency, List<String> times, long estimated_distance) {
         this.ip = ip;
         this.date = date;

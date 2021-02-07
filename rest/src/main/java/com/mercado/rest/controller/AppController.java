@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -73,19 +74,41 @@ public class AppController {
             sb.append(ipEndPoint);
             sb.append(body.get("ip"));
             //execute ip API
-            ipServiceResponse = restTemplate.getForObject(sb.toString(), IpServiceResponse.class);
+            ResponseEntity<IpServiceResponse> ipServiceResponseEntity = restTemplate.exchange(sb.toString(), HttpMethod.GET,null, IpServiceResponse.class);
+
+            if(ipServiceResponseEntity.getStatusCode().value() != 200){
+                //ver como hacer la exception
+                return ipServiceResponseEntity;
+
+            }
+
+            ipServiceResponse = ipServiceResponseEntity.getBody();
             loadCurrencyOnDatabase(restTemplate);
+
+
             //Busco en la base si ya no tengo una respuesta anterior con la data
             //Si no devuelve nada ejecuto el servicio
+
             if(traceRepository.findByIsoCode(ipServiceResponse.getCountryCode()) == null) {
                 logger.info("ejecutando el servicio de pais");
+
                 //execute country API
-                country = restTemplate.getForObject(countryEndpoint + ipServiceResponse.getCountryCode3(), Country.class);
+                ResponseEntity<Country> countryServiceResponseEntity = restTemplate.exchange(countryEndpoint+ipServiceResponse.getCountryCode3(), HttpMethod.GET,null, Country.class);
+
+
+                if(countryServiceResponseEntity.getStatusCode().value() != 200){
+
+                    return countryServiceResponseEntity;
+
+                }
+
+                country = countryServiceResponseEntity.getBody();
                 rate = rateRepository.findByCurrency(country.getCurrencies().get(0).getCode());
                 //Si no estan los datos del cambio en la base de datos los busco del servicio
                 traceResponse = mapResponse(body.get("ip"), country, rate);
                 //execute currency API
                 traceRepository.save(traceResponse);
+
             }else{
 
                 logger.info("lo esta levantando de la base, pero hay que agregarle el cambio y la hora actual");
