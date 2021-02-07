@@ -2,14 +2,19 @@ package com.mercado.rest.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mercado.rest.document.Rate;
+import com.mercado.rest.document.Stats;
 import com.mercado.rest.dto.countryservice.response.Country;
 import com.mercado.rest.dto.ipservice.response.IpServiceResponse;
 import com.mercado.rest.dto.trace.response.TraceResponse;
 import com.mercado.rest.repository.RateRepository;
+import com.mercado.rest.repository.StatsRepository;
 import com.mercado.rest.repository.TraceRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import java.text.SimpleDateFormat;
@@ -26,13 +31,15 @@ public class AppController {
 
     Logger logger = LoggerFactory.getLogger(AppController.class);
 
-    private RateRepository rateRepository;
-    private TraceRepository traceRepository;
+    private final RateRepository rateRepository;
+    private final TraceRepository traceRepository;
+    private final StatsRepository statsRepository;
 
 
-    public AppController(RateRepository rateRepository, TraceRepository traceRepository ){
+    public AppController(RateRepository rateRepository, TraceRepository traceRepository, StatsRepository statsRepository ){
         this.traceRepository = traceRepository;
         this.rateRepository = rateRepository;
+        this.statsRepository = statsRepository;
     }
 
 
@@ -51,14 +58,14 @@ public class AppController {
 
 
     @RequestMapping(value = "trace", method = RequestMethod.POST,  produces = { "application/json" })
-    public TraceResponse trace(@RequestBody Map<String, String> body) throws JsonProcessingException {
+    public ResponseEntity trace(@RequestBody Map<String, String> body) throws JsonProcessingException {
 
 
         Country country;
         IpServiceResponse ipServiceResponse;
-        TraceResponse traceResponse = null;
-        Rate rate = null;
-
+        TraceResponse traceResponse;
+        Rate rate;
+        Stats stats = new Stats();
         try {
 
             RestTemplate restTemplate = new RestTemplate();
@@ -79,10 +86,10 @@ public class AppController {
                 traceResponse = mapResponse(body.get("ip"), country, rate);
                 //execute currency API
                 traceRepository.save(traceResponse);
-
             }else{
 
                 logger.info("lo esta levantando de la base, pero hay que agregarle el cambio y la hora actual");
+                //TODO:agregarle el cambio y la hora actual
                 traceResponse = traceRepository.findByIsoCode(ipServiceResponse.getCountryCode());
 
 
@@ -93,46 +100,59 @@ public class AppController {
             logger.error("Ocurrio un error" , e);
             throw e;
         }
-        return traceResponse;
+        saveStats(traceResponse);
+        return new ResponseEntity(traceResponse, HttpStatus.OK);
+
     }
 
 
 
     @RequestMapping(value = "stats", method = RequestMethod.GET, produces = { "application/json" })
-    public String stats(){
+    public List<Stats> stats(){
 
-        return "hello";
+        List<Stats> statsList = new ArrayList<>();
+        Stats maxStats = statsRepository.findTopByOrderByDistanceAsc();
+        Stats minStats = statsRepository.findTopByOrderByDistanceDesc();
+
+        if(maxStats != null){
+            statsList.add(maxStats);
+        }
+
+        if(minStats != null){
+            statsList.add(minStats);
+        }
+
+
+        return statsList;
     }
 
 
     @RequestMapping(value = "getall", method = RequestMethod.GET, produces = { "application/json" })
-    public TraceResponse getAll(){
+    public List<TraceResponse> getAll(){
         if(traceRepository.findByIsoCode("ESP") == null) {
 
             logger.info("NO VINIERON DATOS DE LA QUERY");
         }
-        return traceRepository.findByIsoCode("US");
+
+        return traceRepository.findAll();
+
     }
 
 
     @RequestMapping(value = "add", method = RequestMethod.GET, produces = { "application/json" })
     public void add(){
 
-        LocalDateTime date = LocalDateTime.now();
-//        rateRepository.save(new Rate(date,"EUR",190L));
-//        rateRepository.save(new Rate(date,"US",120L));
-//        rateRepository.save(new Rate(date,"US",120L));
-//        rateRepository.save(new Rate(date,"US",120L));
-//        rateRepository.save(new Rate(date,"US",120L));
-//        rateRepository.save(new Rate(date,"US",120L));
-//        rateRepository.save(new Rate(date,"US",120L));
-        //rateRepository.save(new Rate(localDateTime,"",100.00));
-        //rateRepository.save(new Rate(localDateTime,"",233.33));
+
     }
 
 
-
-
+    /**
+     * Mapea la respuesta final
+     * @param ip
+     * @param country
+     * @param rate
+     * @return
+     */
 
     public TraceResponse mapResponse(String ip, Country country, Rate rate){
 
@@ -158,6 +178,12 @@ public class AppController {
 
 
 
+
+    /**
+     * Calcula la hora actual de un pais a partir del time-zone pasado como parametro
+     * @param timeZone
+     * @return
+     */
     public String getCountryTime(String timeZone){
 
         String splitTimeZone = timeZone.split(":")[0];
@@ -192,8 +218,14 @@ public class AppController {
     }
 
 
-    public String getDistanceToBsAs(int lat, int lng){
+    /**
+     * Calcula la distancia desde Buenos Aires hasta la lat y lng pasadas como parametros
+     * @param lat
+     * @param lng
+     * @return
+     */
 
+    public long getDistanceToBsAs(int lat, int lng){
 
         final double degreesLatBsAs = Math.toRadians(-34);
         final double degreesLngBsAs = Math.toRadians(-64);
@@ -205,7 +237,7 @@ public class AppController {
         //regla de 3. si para circunferencia 360 = 40000
         double distance = (Math.sin(degreesLatBsAs) * Math.sin(dlat2)) + (Math.cos(degreesLatBsAs) * Math.cos(dlat2) * Math.cos(degreesLngBsAs-dlng2));
 
-        return Math.round((Math.toDegrees(Math.acos(distance)) / 360) * earthCir) +" kms";
+        return Math.round((Math.toDegrees(Math.acos(distance)) / 360) * earthCir);
 
 
     }
@@ -231,6 +263,21 @@ public class AppController {
             rates.entrySet().stream().forEach(e -> rateRepository.save(new Rate(localDateTime, e.getKey().toString(), Double.parseDouble(e.getValue().toString()))));
         }
 
+    }
+
+
+    public void saveStats(TraceResponse traceResponse){
+
+        if(statsRepository.findByCountry(traceResponse.getCountry())!=null) {
+            Stats stats = statsRepository.findByCountry(traceResponse.getCountry());
+            stats.setInvocations(stats.getInvocations() + 1);
+            statsRepository.save(stats);
+
+        }else{
+
+            statsRepository.save(new Stats(traceResponse.getCountry(),traceResponse.getEstimated_distance(),1));
+
+        }
     }
 
 

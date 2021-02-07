@@ -1,6 +1,7 @@
 package com.mercado.rest.document;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,11 +17,19 @@ import java.time.LocalDateTime;
 @Document
 public class Rate {
 
-
+    @JsonIgnore
+    @Id
+    String id;
     @Indexed(expireAfter = "12h")
     private LocalDateTime createdAt;
     private String currency;
     private double value;
 
 
+
+    public Rate(LocalDateTime createdAt, String currency, double value) {
+        this.createdAt = createdAt;
+        this.currency = currency;
+        this.value = value;
+    }
 }
