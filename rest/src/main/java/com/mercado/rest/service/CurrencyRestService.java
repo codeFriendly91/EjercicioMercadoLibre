@@ -1,6 +1,7 @@
 package com.mercado.rest.service;
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mercado.rest.Exception.RestException;
 import com.mercado.rest.document.Rate;
@@ -30,7 +31,7 @@ public class CurrencyRestService {
     @Value("${rest.currency.endpoint}")
     private String curencyEndpoint;
 
-    public void get() throws RestException, Exception {
+    public void get() throws RestException {
 
         //si el repo esta vacio ejecuto el servicio y cargo los datos
 
@@ -46,7 +47,12 @@ public class CurrencyRestService {
                 throw new RestException(currencyResponse.getStatusCodeValue());
 
             }
-            Map<String, Object> result = new ObjectMapper().readValue(currencyResponse.getBody(), HashMap.class);
+            Map<String, Object> result = null;
+            try {
+                result = new ObjectMapper().readValue(currencyResponse.getBody(), HashMap.class);
+            } catch (JsonProcessingException e) {
+                throw new RestException(500,e.getCause().getMessage());
+            }
             LinkedHashMap<Object, Object> rates = (LinkedHashMap<Object, Object>) result.get("rates");
             LocalDateTime localDateTime = LocalDateTime.now();
             rates.entrySet().stream().forEach(e -> rateRepository.save(new Rate(localDateTime, e.getKey().toString(), Double.parseDouble(e.getValue().toString()))));

@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 
-public class RestException extends RuntimeException {
+public class RestException extends Exception {
 
     private int statusCode;
 

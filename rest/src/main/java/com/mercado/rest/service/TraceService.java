@@ -35,7 +35,7 @@ public class TraceService {
 
 
 
-    public TraceResponse trace(TraceRequest traceRequest) throws RestException,Exception {
+    public TraceResponse trace(TraceRequest traceRequest) throws RestException {
 
 
         TraceResponse traceResponse;
@@ -54,13 +54,11 @@ public class TraceService {
             //Si no devuelve nada ejecuto el servicio
             if(traceRepository.existsByIsoCode(ipServiceResponse.getCountryCode())) {
 
-                log.info("lo esta levantando de la base, pero hay que agregarle el cambio y la hora actual");
                 traceResponse = traceRepository.findByIsoCode(ipServiceResponse.getCountryCode());
                 mapResponseFromRepository(traceResponse,traceRequest);
 
             }else{
 
-                log.info("ejecutando el servicio de pais");
                 country =  countryRestService.get(ipServiceResponse.getCountryCode3());
                 rate = rateRepository.findByCurrency(country.getCurrencies().get(0).getCode());
 
@@ -70,13 +68,9 @@ public class TraceService {
             }
 
 
-        }catch (RestException restException) {
+        }catch (RestException restException ) {
 
-            log.error("Ocurrio un error" , restException.getStatusCode());
             throw restException;
-        }catch (Exception ex){
-            log.error("Ocurrio un error" , ex.getCause());
-            throw ex;
         }
         traceRepository.save(traceResponse);
         saveStats(traceResponse);

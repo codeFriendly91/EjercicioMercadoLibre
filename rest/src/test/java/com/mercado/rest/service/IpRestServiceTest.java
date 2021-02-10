@@ -1,5 +1,6 @@
 package com.mercado.rest.service;
 
+import com.mercado.rest.Exception.RestException;
 import com.mercado.rest.dto.ipservice.response.IpServiceResponse;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -16,7 +17,7 @@ class IpRestServiceTest {
     IpRestService restService;
 
     @Test
-    void get() {
+    void get() throws RestException {
 
         //direccion ip Argentina
         IpServiceResponse  ipServiceResponse=restService.get("45.5.15.0");

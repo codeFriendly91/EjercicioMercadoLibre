@@ -1,6 +1,7 @@
 package com.mercado.rest.controller;
 
 
+import com.mercado.rest.Exception.RestException;
 import com.mercado.rest.dto.statsservice.StatsServiceResponse;
 import com.mercado.rest.service.StatsService;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +17,7 @@ public class StatsController {
     private final StatsService statsService;
 
     @RequestMapping(value = "stats", method = RequestMethod.GET, produces = { "application/json" })
-    public StatsServiceResponse stats (){
+    public StatsServiceResponse stats () throws RestException {
 
         return statsService.getMaxAndMinStats();
     }

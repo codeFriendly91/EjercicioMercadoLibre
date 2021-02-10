@@ -16,7 +16,7 @@ public class CountryRestService {
     @Value( "${rest.country.endpoint}" )
     private String countryEndpoint;
 
-    public Country get(String isoCode){
+    public Country get(String isoCode) throws RestException {
 
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<Country> countryServiceResponse = restTemplate.exchange(countryEndpoint + isoCode, HttpMethod.GET, null, Country.class);

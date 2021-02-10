@@ -1,5 +1,6 @@
 package com.mercado.rest.service;
 
+import com.mercado.rest.Exception.ExceptionResponse;
 import com.mercado.rest.Exception.RestException;
 import com.mercado.rest.document.Stats;
 import com.mercado.rest.dto.statsservice.StatsServiceResponse;
@@ -8,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 
@@ -19,31 +21,29 @@ public class StatsService {
     private final StatsRepository statsRepository;
 
 
-    public StatsServiceResponse getMaxAndMinStats (){
+    public StatsServiceResponse getMaxAndMinStats () throws RestException {
 
         StatsServiceResponse statsServiceResponse = new StatsServiceResponse();
-        try {
 
-            statsServiceResponse.setStatsList(new ArrayList<>());
-            if (statsRepository.findAll() != null && !statsRepository.findAll().isEmpty()) {
+        statsServiceResponse.setStatsList(new ArrayList<>());
+        if (statsRepository.findAll() != null && !statsRepository.findAll().isEmpty()) {
 
-                Stats maxStats = statsRepository.findTopByOrderByDistanceAsc();
-                Stats minStats = statsRepository.findTopByOrderByDistanceDesc();
+            Stats maxStats = statsRepository.findTopByOrderByDistanceAsc();
+            Stats minStats = statsRepository.findTopByOrderByDistanceDesc();
 
-                if (minStats != null) {
-                    statsServiceResponse.getStatsList().add(maxStats);
-                }
-
-                if (maxStats != null && !minStats.equals(maxStats)) {
-                    statsServiceResponse.getStatsList().add(minStats);
-                }
-
-                statsServiceResponse.setAverageDistance(getAverageDistance(statsRepository.findAll()));
-
+            if (minStats != null) {
+                statsServiceResponse.getStatsList().add(maxStats);
             }
-        }catch (RestException e){
-            log.error(e.getMessage());
-            throw e;
+
+            if (maxStats != null && !minStats.equals(maxStats)) {
+                statsServiceResponse.getStatsList().add(minStats);
+            }
+
+            statsServiceResponse.setAverageDistance(getAverageDistance(statsRepository.findAll()));
+
+        }else{
+
+            throw new RestException(200,"NO STATS FOUNDS");
         }
         return statsServiceResponse;
 

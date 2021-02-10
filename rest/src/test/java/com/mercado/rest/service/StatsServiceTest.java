@@ -1,5 +1,6 @@
 package com.mercado.rest.service;
 
+import com.mercado.rest.Exception.RestException;
 import com.mercado.rest.controller.StatsController;
 import com.mercado.rest.document.Stats;
 import com.mercado.rest.dto.statsservice.StatsServiceResponse;
@@ -47,7 +48,7 @@ class StatsServiceTest {
 
 
     @Test
-    void getMaxAndMinStats() {
+    void getMaxAndMinStats() throws RestException {
 
 
        StatsServiceResponse statsServiceResponse = statsService.getMaxAndMinStats();

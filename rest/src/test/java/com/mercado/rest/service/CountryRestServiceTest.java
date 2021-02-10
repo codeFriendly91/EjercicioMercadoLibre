@@ -1,5 +1,6 @@
 package com.mercado.rest.service;
 
+import com.mercado.rest.Exception.RestException;
 import com.mercado.rest.dto.countryservice.response.Country;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
@@ -20,7 +21,7 @@ class CountryRestServiceTest {
 
 
     @Test
-    void get() {
+    void get() throws RestException {
         Country country = countryRestService.get("AR");
         assertEquals("Argentina",country.getName());
         assertEquals("ARG", country.getAlpha3Code());
